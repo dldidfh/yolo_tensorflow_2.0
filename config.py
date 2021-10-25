@@ -2,7 +2,7 @@ import argparse
 def parse_args(args):
     parser = argparse.ArgumentParser(description='config info')
     parser.add_argument("--input_scale",default=416, type=int) # 320 + 32*n
-    parser.add_argument("--batch_size",default=2, type=int)
+    parser.add_argument("--batch_size",default=1, type=int)
     parser.add_argument("--box_per_grid",default=3, type=int)
     parser.add_argument("--class_num",default=7, type=int)  
     parser.add_argument("--epochs",default=10, type=int)   

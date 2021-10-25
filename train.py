@@ -5,44 +5,37 @@ import numpy as np
 import sys
 from config import parse_args
 from dataset import DataGen
-from model import YOLOv1_Resnet50
+from model import YOLOv1_Resnet50, YOLOv1
 from loss import total_loss
+from utils import check_input_image_and_boxes
 from learning_rate_scheduler import CustomLearningRateScheduler, lr_schedule
+from predict import predict
+import datetime 
 import cv2 
+gpus = tf.config.experimental.list_physical_devices('GPU')
+if gpus:
+    try:
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True) ##########################################################
+            # tf.config.experimental.set_virtual_device_configuration(gpu, [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=448)])
+    except RuntimeError as e:
+        print(e)
 
 def main(args):
     # 데이터 셋을 준비한다 
     train_data = DataGen(args)
     test_data = DataGen(args, mode=2)
     # 데이터가 어떻게 들어가는지 확인  batch size 만큼 한번에 출력됨을 확인할 수 있음
-    for i in range(train_data.__len__() // args.batch_size):
-        a = train_data.__getitem__(i)
-        for j in range(args.batch_size):
-            image = a[0][j]
-            boxes = a[1][j]
-            
-            boxes = boxes[..., : 5 * args.box_per_grid]
-            boxes = boxes[boxes != 0.]
-            for x in range(len(boxes) // 5):
-                box_x = boxes[0 + (x * 5)]
-                box_y = boxes[1 + (x * 5)]
-                box_w = boxes[2 + (x * 5)]
-                box_h = boxes[3 + (x * 5)]
-                box_xmin = int((box_x - box_w) * args.input_scale)
-                box_ymin = int((box_y - box_h)* args.input_scale)
-                box_xmax = int((box_x + box_w)* args.input_scale)
-                box_ymax = int((box_y + box_h)* args.input_scale)
-                image = cv2.rectangle(image,(box_xmin,box_ymin),(box_xmax,box_ymax),(244,244,0),1)
-
-            cv2.imshow('asd', image )
-            cv2.waitKey(0)
-    raise
-    model = YOLOv1_Resnet50(args)
+    # check_input_image_and_boxes(args, train_data)
+    # raise
+    # model = YOLOv1_Resnet50(args)
+    model = YOLOv1(args)
     
     # 손실함수를 정의한다 - 함수 안에 함수를 정의하여 함수를 리턴 
     loss_function = total_loss(args)
     # keras saved_model 형태로 저장 
-    model_checkpoint = tf.keras.callbacks.ModelCheckpoint('first_weghit', save_best_only=True, monitor='val_loss', mode='min')
+    checkpoint_dir = 'check_point/first_weight'
+    model_checkpoint = tf.keras.callbacks.ModelCheckpoint(checkpoint_dir, save_best_only=True, monitor='val_loss', mode='min', save_weights_only=True)
     model.compile(optimizer='adam', loss=loss_function)
 
     model.fit(train_data, 
@@ -51,11 +44,24 @@ def main(args):
                 verbose=2, # 블라블라 많이 나오는거 수준 Verbosity mode. 0 = silent, 1 = progress bar, 2 = one line per epoch
                 validation_data = test_data,
                 # validation_freq = 3,  # [1,5,10,100]  # 어떤 주기마다 validation을 진행할지 리스트, 튜플 다 가능 
-                # callbacks = [CustomLearningRateScheduler(lr_schedule),model_checkpoint],
+                callbacks = [CustomLearningRateScheduler(lr_schedule),model_checkpoint],
                 # workers = 8, # 사용할 코어 수 
                 # use_multiprocessing = True # 다중 GPU 학습에 필요 
                 )
+
+
+    output_model = 'saved_model/' + datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S') # + '.'
+    model.load_weights(checkpoint_dir)
     
+    image = cv2.imread('./dataset/train_data/2021_08_27_Daejeon_Yuseong_gu_132_450.jpg') 
+    image = cv2.resize(image, (args.input_scale,args.input_scale)) / 255
+    image = np.expand_dims(image, axis=0)
+
+    pred = model.predict(image)
+    print(pred)
+
+    tf.saved_model.save(model, output_model)
+    # model.save(output_model)
     return 1
 
 
