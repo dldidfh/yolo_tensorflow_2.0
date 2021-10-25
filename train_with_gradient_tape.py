@@ -58,12 +58,12 @@ def main(args):
         loss = loss_function(labels, predictions)
         test_loss(loss)
 
-    txt = '에포크: {}, 스텝 : {}, 손실: {:.5f}, 테스트 손실: {:.5f}'
+    txt = '에포크: {}, 스텝 : {}, 손실: {:.5f}'
     for epoch in range(args.epochs):
         step = 1
         for image, labels in train_data:
             train_step(image, labels)
-            print(txt.format((epoch + 1), step ,train_loss.result(),test_loss.result() ))
+            print(txt.format((epoch + 1), step ,train_loss.result()))
             step += 1
 
         for test_image, test_labels in test_data:

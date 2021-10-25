@@ -39,9 +39,6 @@ def main(args):
     loss_function = total_loss(args)
     model.compile(optimizer='adam', loss=loss_function)
 
-    value_print =tape.gradient(loss_function, model.trainable_variables)
-    print(value_print)
-
     model.fit(train_data, 
                 batch_size = args.batch_size,
                 epochs = args.epochs,

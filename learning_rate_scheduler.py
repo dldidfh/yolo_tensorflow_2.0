@@ -17,9 +17,9 @@ class CustomLearningRateScheduler(tf.keras.callbacks.Callback):
 
 LR_SCHEDULE = [
     # (epoch to start, learning rate) tuples
-    (0, 0.00001),
-    (5, 0.000001),
-    (10, 0.000001),
+    (0, 0.000001),
+    (5, 0.0000001),
+    (10, 0.0000001),
 ]
 
 
