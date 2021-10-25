@@ -37,35 +37,41 @@ def main(args):
     model_checkpoint = tf.keras.callbacks.ModelCheckpoint(checkpoint_dir, save_best_only=True, monitor='val_loss', mode='min', save_weights_only=True)\
 
     loss_function = total_loss(args)
-    model.compile(optimizer='adam', loss=loss_function)
+    optimizer = tf.keras.optimizers.Adam()
+    model.compile(optimizer=optimizer, loss=loss_function)
 
-    value_print =tape.gradient(loss_function, model.trainable_variables)
-    print(value_print)
+    train_loss = tf.keras.metrics.Mean()
+    test_loss = tf.keras.metrics.Mean()
+    # https://teddylee777.github.io/tensorflow/gradient-tape    
+    @tf.function
+    def train_step(images, labels):
+        with tf.GradientTape() as tape:
+            predictions = model(images)
+            loss = loss_function(labels, predictions)
+        gradients = tape.gradient(loss, model.trainable_variables)
+        optimizer.apply_gradients(zip(gradients, model.trainable_variables))
+        train_loss(loss)
 
-    model.fit(train_data, 
-                batch_size = args.batch_size,
-                epochs = args.epochs,
-                verbose=2, # 블라블라 많이 나오는거 수준 Verbosity mode. 0 = silent, 1 = progress bar, 2 = one line per epoch
-                validation_data = test_data,
-                # validation_freq = 3,  # [1,5,10,100]  # 어떤 주기마다 validation을 진행할지 리스트, 튜플 다 가능 
-                callbacks = [CustomLearningRateScheduler(lr_schedule),model_checkpoint],
-                # workers = 8, # 사용할 코어 수 
-                # use_multiprocessing = True # 다중 GPU 학습에 필요 
-                )
+    @tf.function
+    def test_step(images, labels):
+        predictions = model(images)
+        loss = loss_function(labels, predictions)
+        test_loss(loss)
 
+    txt = '에포크: {}, 스텝 : {}, 손실: {:.5f}, 테스트 손실: {:.5f}'
+    for epoch in range(args.epochs):
+        step = 1
+        for image, labels in train_data:
+            train_step(image, labels)
+            print(txt.format((epoch + 1), step ,train_loss.result(),test_loss.result() ))
+            step += 1
 
-    output_model = 'saved_model/' + datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S') 
-    model.load_weights(checkpoint_dir)
+        for test_image, test_labels in test_data:
+            test_step(test_image, test_labels)
     
-    
-    image = test_data.__getitem__(0)[0]
-    pred = model.predict(image)
-    print(pred)
-    print(pred.shape)
+        # print(txt.format((epoch + 1),train_loss.result(),test_loss.result() ))
 
-    tf.saved_model.save(model, output_model)
-    # model.save(output_model)
-    return 1
+    return 1 
 
 
 
@@ -73,3 +79,7 @@ def main(args):
 if __name__ == "__main__":
     args = parse_args(sys.argv[1:])
     main(args)
+
+
+
+    

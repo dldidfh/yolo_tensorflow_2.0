@@ -71,9 +71,10 @@ def total_loss(args):
     noobj_loss = NoobjectLoss.noobject_loss(args)
     box_reg_loss = BoxRegressionLoss.box_regression_loss(args)
     def loss(y_true, y_pred):
-        # y_pred 값이 nan이 나올 때가 있어 학습에 문제가 생겨서 Nan을 전부 0으로 변경함 
-        nan_status = tf.math.is_nan(y_pred)
-        y_pred = tf.where(nan_status, 0., y_pred)
+        tf.print(y_pred, output_stream=sys.stderr)
+        # y_pred 값이 nan이 나올 때가 있어 학습에 문제가 생겨서 Nan을 전부 0으로 변경
+        # nan_status = tf.math.is_nan(y_pred)
+        # y_pred = tf.where(nan_status, 0., y_pred)
 
         # class_loss_value = class_loss(args)(y_true, y_pred)
         # obj_loss_value = object_loss(args)(y_true, y_pred)

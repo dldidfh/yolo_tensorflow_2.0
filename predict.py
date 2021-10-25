@@ -14,9 +14,7 @@ def predict(args, model=None):
 
     image = cv2.resize(image, (args.input_scale,args.input_scale)) / 255
     image = np.expand_dims(image, axis=0)
-    # image = np.cast(image,)
-    # image = tf.image.convert_image_dtype(image, tf.float32)
-    # model.summary()
+    
     signatures = list(model.signatures.keys())
     print(signatures)
     infer = model.signatures['serving_default']
